@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 2748e9420cd..665fad4fd2a 100644
+index bc9b6790922..2543fa1ae37 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -866,12 +866,12 @@ if(SWIFT_PARALLEL_LINK_JOBS)
+@@ -966,12 +966,12 @@ if(SWIFT_PARALLEL_LINK_JOBS)
    endif()
  endif()
  
@@ -82,10 +82,10 @@ index 8046ea79966..4c2c040a573 100644
 +install(DIRECTORY ${CMAKE_SOURCE_DIR}/stdlib/public/SwiftShims DESTINATION stdlib/public)
 +
 diff --git a/cmake/modules/SwiftComponents.cmake b/cmake/modules/SwiftComponents.cmake
-index 401cff7a6ef..15dba54db72 100644
+index d7a03ae74ed..5506512d77f 100644
 --- a/cmake/modules/SwiftComponents.cmake
 +++ b/cmake/modules/SwiftComponents.cmake
-@@ -72,7 +72,7 @@ set(_SWIFT_DEFINED_COMPONENTS
+@@ -74,7 +74,7 @@ set(_SWIFT_DEFINED_COMPONENTS
  # for the following exceptions.
  set(_SWIFT_DEFAULT_COMPONENTS "${_SWIFT_DEFINED_COMPONENTS}")
  # 'dev' takes up a lot of disk space and isn't part of a normal toolchain.
@@ -95,7 +95,7 @@ index 401cff7a6ef..15dba54db72 100644
  list(REMOVE_ITEM _SWIFT_DEFAULT_COMPONENTS "clang-resource-dir-symlink")
  list(REMOVE_ITEM _SWIFT_DEFAULT_COMPONENTS "clang-builtin-headers-in-clang-resource-dir")
 diff --git a/cmake/modules/SwiftSharedCMakeConfig.cmake b/cmake/modules/SwiftSharedCMakeConfig.cmake
-index 0b830e33ce1..22f074cf7ae 100644
+index 26ada5dc9ac..f5e98328616 100644
 --- a/cmake/modules/SwiftSharedCMakeConfig.cmake
 +++ b/cmake/modules/SwiftSharedCMakeConfig.cmake
 @@ -14,6 +14,20 @@ macro(swift_common_standalone_build_config_llvm product)
@@ -120,32 +120,18 @@ index 0b830e33ce1..22f074cf7ae 100644
  
    set(LLVM_MAIN_SRC_DIR "${LLVM_BUILD_MAIN_SRC_DIR}"
 diff --git a/utils/build-script b/utils/build-script
-index 3f2e0549568..885264e7e89 100755
+index 4440554af7e..8fd83951c4e 100755
 --- a/utils/build-script
 +++ b/utils/build-script
-@@ -720,6 +720,9 @@ class BuildScriptInvocation(object):
-                 '-DCMAKE_IGNORE_PATH=/usr/lib;/usr/local/lib;/lib',
-                 '-DPKG_CONFIG_EXECUTABLE=/usr/bin/false',
-             ]
-+            args.extra_cmake_options += [
-+                '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
-+            ]
+@@ -354,6 +354,11 @@ def apply_default_arguments(toolchain, args):
+             args.android = True
+         args.build_android = False
  
-         if toolchain.libtool is not None:
-             impl_args += [
-diff --git a/utils/swift_build_support/swift_build_support/products/cmark.py b/utils/swift_build_support/swift_build_support/products/cmark.py
-index cac4f2e03d1..eb854e76860 100644
---- a/utils/swift_build_support/swift_build_support/products/cmark.py
-+++ b/utils/swift_build_support/swift_build_support/products/cmark.py
-@@ -14,6 +14,11 @@ from . import product
- 
- 
- class CMark(product.Product):
-+    def __init__(self, args, toolchain, source_dir, build_dir):
-+     product.Product.__init__(self, args, toolchain, source_dir,
-+                              build_dir)
-+     self.cmake_options.define('CMAKE_INSTALL_PREFIX:STRING', self.args.install_prefix)
++    args.extra_cmake_options += [
++        '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
++    ]
 +
-     @classmethod
-     def is_build_script_impl_product(cls):
-         """is_build_script_impl_product -> bool
++
+     # Include the Darwin supported architectures in the CMake options.
+     if args.swift_darwin_supported_archs:
+         args.extra_cmake_options.append(
