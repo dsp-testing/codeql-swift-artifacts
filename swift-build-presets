@@ -2,6 +2,8 @@
 release
 build-subdir=codeql
 
+llvm-targets-to-build=X86;ARM;AArch64
+
 skip-ios
 skip-tvos
 skip-watchos

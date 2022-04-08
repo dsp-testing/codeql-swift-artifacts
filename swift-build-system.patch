@@ -1,26 +1,3 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
-index bc9b6790922..2543fa1ae37 100644
---- a/CMakeLists.txt
-+++ b/CMakeLists.txt
-@@ -966,12 +966,12 @@ if(SWIFT_PARALLEL_LINK_JOBS)
-   endif()
- endif()
- 
--# Set the CMAKE_OSX_* variables in a way that minimizes conflicts.
--if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin" AND NOT CMAKE_CROSSCOMPILING)
--  set(CMAKE_OSX_SYSROOT "${SWIFT_SDK_${SWIFT_HOST_VARIANT_SDK}_PATH}")
--  set(CMAKE_OSX_ARCHITECTURES "")
--  set(CMAKE_OSX_DEPLOYMENT_TARGET "")
--endif()
-+# # Set the CMAKE_OSX_* variables in a way that minimizes conflicts.
-+# if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin" AND NOT CMAKE_CROSSCOMPILING)
-+#   set(CMAKE_OSX_SYSROOT "${SWIFT_SDK_${SWIFT_HOST_VARIANT_SDK}_PATH}")
-+#   set(CMAKE_OSX_ARCHITECTURES "")
-+#   set(CMAKE_OSX_DEPLOYMENT_TARGET "")
-+# endif()
- 
- if(SWIFT_INCLUDE_TOOLS)
-   message(STATUS "Building host Swift tools for ${SWIFT_HOST_VARIANT_SDK} ${SWIFT_HOST_VARIANT_ARCH}")
 diff --git a/cmake/modules/CMakeLists.txt b/cmake/modules/CMakeLists.txt
 index 8046ea79966..4c2c040a573 100644
 --- a/cmake/modules/CMakeLists.txt
@@ -119,19 +96,3 @@ index 26ada5dc9ac..f5e98328616 100644
    list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
  
    set(LLVM_MAIN_SRC_DIR "${LLVM_BUILD_MAIN_SRC_DIR}"
-diff --git a/utils/build-script b/utils/build-script
-index 4440554af7e..8fd83951c4e 100755
---- a/utils/build-script
-+++ b/utils/build-script
-@@ -354,6 +354,11 @@ def apply_default_arguments(toolchain, args):
-             args.android = True
-         args.build_android = False
- 
-+    args.extra_cmake_options += [
-+        '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
-+    ]
-+
-+
-     # Include the Darwin supported architectures in the CMake options.
-     if args.swift_darwin_supported_archs:
-         args.extra_cmake_options.append(
