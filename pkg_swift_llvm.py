@@ -161,11 +161,9 @@ def configure_dummy_project(tmp, *, llvm=None, swift=None, installed=None):
 
 def get_libs(configured):
     print("extracting linking information from dummy project")
-    cut = 8
-    if sys.platform == 'linux':
-        cut = 4
     with open(configured / "CMakeFiles" / "dummy.dir" / "link.txt") as link:
-        libs = link.read().split()[cut:]  # skip up to -o dummy
+        libs = link.read().split()
+        libs = libs[libs.index('dummy')+1:] # skip up to -o dummy
     ret = Libs([], [], [])
     for l in libs:
         if l.endswith(".a"):
