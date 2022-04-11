@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import zipfile
+import zlib
 from collections import namedtuple
 
 DEPS = {"llvm": ["LLVMSupport"],
@@ -20,7 +20,7 @@ def getoptions():
     for p in DEPS:
         parser.add_argument(f"--{p}", required=True, type=resolve,
                             metavar="DIR", help=f"path to {p} build root")
-    default_output = f"swift-prebuilt-{get_platform()}.zip"
+    default_output = f"swift-prebuilt-{get_platform()}"
     parser.add_argument("--keep-tmp-dir", "-K", action="store_true",
                         help="do not clean up the temporary directory")
     parser.add_argument("--output", "-o", type=pathlib.Path, metavar="DIR_OR_ZIP",
@@ -279,16 +279,16 @@ def create_export_dir(tmp, installed, libs):
 
 
 def zip_dir(src, tgt):
-    print(f"compressing {src.name} to {tgt}")
     tgt = get_tgt(tgt, f"swift-prebuilt-{get_platform()}.zip")
-    with zipfile.ZipFile(tgt, "w",
-                         compression=zipfile.ZIP_DEFLATED,
-                         compresslevel=6) as archive:
-        for srcfile in src.rglob("*"):
-            if srcfile.is_file():
-                print(f"deflating {srcfile.relative_to(src)}")
-                archive.write(srcfile, arcname=srcfile.relative_to(src))
-    print(f"created {tgt}")
+    print(f"compressing {src.name} to {tgt}")
+    archive = shutil.make_archive(tgt, 'zip', src)
+    print(f"created {archive}")
+
+def tar_dir(src, tgt):
+    tgt = get_tgt(tgt, f"swift-prebuilt-{get_platform()}.tar.gz")
+    print(f"compressing {src.name} to {tgt}")
+    archive = shutil.make_archive(tgt, 'gztar', src)
+    print(f"created {archive}")
 
 
 def main(opts):
@@ -316,6 +316,7 @@ def main(opts):
         libs = get_libs(configured)
         exported = create_export_dir(tmp, installed, libs)
         zip_dir(exported, opts.output)
+        tar_dir(exported, opts.output)
 
 
 if __name__ == "__main__":
