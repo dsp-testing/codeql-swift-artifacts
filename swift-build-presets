@@ -3,6 +3,7 @@ release
 build-subdir=codeql
 
 llvm-targets-to-build=X86;ARM;AArch64
+llvm-cmake-options=-DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_TERMINFO=OFF
 
 skip-ios
 skip-tvos
