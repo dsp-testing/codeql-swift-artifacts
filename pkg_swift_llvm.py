@@ -57,7 +57,7 @@ add_executable(dummy empty.cpp)
 target_link_libraries(dummy PRIVATE {" ".join(DEPLIST)})
 """
 
-EXPORTED_LIB = "swiftAndLlvmSupport"
+EXPORTED_LIB = "CodeQLSwiftFrontendTool"
 
 CMAKELISTS_EXPORTED_FMT = """
 add_library({exported} INTERFACE)
@@ -72,7 +72,7 @@ else()
     set(EXT "a")
 endif()
 
-set (SwiftLLVMWrapperLib libswiftAndLlvmSupportReal.${{EXT}})
+set (SwiftLLVMWrapperLib libCodeQLSwiftFrontendTool.${{EXT}})
 set (input ${{CMAKE_CURRENT_LIST_DIR}}/${{SwiftLLVMWrapperLib}})
 set (output ${{CMAKE_BINARY_DIR}}/${{SwiftLLVMWrapperLib}})
 
@@ -188,7 +188,7 @@ def get_tgt(tgt, filename):
 
 
 def create_static_lib(tgt, libs):
-    tgt = get_tgt(tgt, f"lib{EXPORTED_LIB}Real.a")
+    tgt = get_tgt(tgt, f"lib{EXPORTED_LIB}.a")
     print(f"packaging {tgt.name}")
     if sys.platform == 'linux':
         includedlibs = "\n".join(f"addlib {l}" for l in libs.archive + libs.static)
@@ -209,7 +209,7 @@ def create_shared_lib(tgt, libs):
     ext = "so"
     if sys.platform != 'linux':
         ext = "dylib"
-    libname = f"lib{EXPORTED_LIB}Real.{ext}"
+    libname = f"lib{EXPORTED_LIB}.{ext}"
     tgt = get_tgt(tgt, libname)
     print(f"packaging {libname}")
     compiler = os.environ.get("CC", "clang")
@@ -321,3 +321,4 @@ def main(opts):
 
 if __name__ == "__main__":
     main(getoptions())
+
