@@ -28,3 +28,34 @@ skip-build-clang-tools-extra
 skip-build-benchmarks
 skip-build-android
 
+[preset: codeql-debug]
+debug
+assertions
+build-subdir=codeql-debug
+
+llvm-targets-to-build=X86;ARM;AArch64
+llvm-cmake-options=-DLLVM_ENABLE_TERMINFO=OFF
+
+skip-ios
+skip-tvos
+skip-watchos
+
+skip-test-osx
+skip-test-linux
+skip-test-swiftpm
+skip-test-swift-driver
+skip-test-swiftsyntax
+skip-test-indexstore-db
+skip-test-sourcekit-lsp
+skip-test-playgroundsupport
+skip-test-skstresstester
+skip-test-swiftformat
+skip-test-swiftevolve
+skip-test-toolchain-benchmarks
+skip-test-swift-inspect
+skip-test-swift
+
+skip-build-clang-tools-extra
+skip-build-benchmarks
+skip-build-android
+
