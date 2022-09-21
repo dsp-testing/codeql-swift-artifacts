@@ -2,6 +2,7 @@
 release
 build-subdir=codeql
 
+bootstrapping=off
 llvm-targets-to-build=X86;ARM;AArch64
 llvm-cmake-options=-DLLVM_ENABLE_TERMINFO=OFF
 
@@ -33,6 +34,7 @@ debug
 assertions
 build-subdir=codeql-debug
 
+bootstrapping=off
 llvm-targets-to-build=X86;ARM;AArch64
 llvm-cmake-options=-DLLVM_ENABLE_TERMINFO=OFF
 
