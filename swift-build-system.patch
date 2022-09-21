@@ -1,16 +1,15 @@
 diff --git a/cmake/modules/CMakeLists.txt b/cmake/modules/CMakeLists.txt
-index 8046ea79966..4c2c040a573 100644
+index 8046ea79966..cd4fa6e673b 100644
 --- a/cmake/modules/CMakeLists.txt
 +++ b/cmake/modules/CMakeLists.txt
-@@ -17,3 +17,55 @@ configure_file(
+@@ -17,3 +17,54 @@ configure_file(
    SwiftConfig.cmake.in
    ${swift_cmake_builddir}/SwiftConfig.cmake
    @ONLY)
 +
-+
 +# Generate install-tree CMake files
 +set(SWIFT_CONFIG_CODE "
-+# Compute the installation prefix from this LLVMConfig.cmake file location.
++# Compute the installation prefix from this SwiftConfig.cmake file location.
 +get_filename_component(SWIFT_INSTALL_PREFIX \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)")
 +# Construct the proper number of get_filename_component(... PATH)
 +# calls to compute the installation prefix.
@@ -59,10 +58,10 @@ index 8046ea79966..4c2c040a573 100644
 +install(DIRECTORY ${CMAKE_SOURCE_DIR}/stdlib/public/SwiftShims DESTINATION stdlib/public)
 +
 diff --git a/cmake/modules/SwiftComponents.cmake b/cmake/modules/SwiftComponents.cmake
-index d7a03ae74ed..5506512d77f 100644
+index 4d77e374deb..88b6645a811 100644
 --- a/cmake/modules/SwiftComponents.cmake
 +++ b/cmake/modules/SwiftComponents.cmake
-@@ -74,7 +74,7 @@ set(_SWIFT_DEFINED_COMPONENTS
+@@ -76,7 +76,7 @@ set(_SWIFT_DEFINED_COMPONENTS
  # for the following exceptions.
  set(_SWIFT_DEFAULT_COMPONENTS "${_SWIFT_DEFINED_COMPONENTS}")
  # 'dev' takes up a lot of disk space and isn't part of a normal toolchain.
@@ -71,28 +70,3 @@ index d7a03ae74ed..5506512d77f 100644
  # These clang header options conflict with 'clang-builtin-headers'.
  list(REMOVE_ITEM _SWIFT_DEFAULT_COMPONENTS "clang-resource-dir-symlink")
  list(REMOVE_ITEM _SWIFT_DEFAULT_COMPONENTS "clang-builtin-headers-in-clang-resource-dir")
-diff --git a/cmake/modules/SwiftSharedCMakeConfig.cmake b/cmake/modules/SwiftSharedCMakeConfig.cmake
-index 26ada5dc9ac..f5e98328616 100644
---- a/cmake/modules/SwiftSharedCMakeConfig.cmake
-+++ b/cmake/modules/SwiftSharedCMakeConfig.cmake
-@@ -14,6 +14,20 @@ macro(swift_common_standalone_build_config_llvm product)
-   # Then we import LLVMConfig. This is going to override whatever cached value
-   # we have for LLVM_ENABLE_ASSERTIONS.
-   find_package(LLVM CONFIG REQUIRED NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
-+  if (APPLE)
-+    if (LLVM_VERSION_MAJOR GREATER_EQUAL 12)
-+      # Precompiled LLVM 12+ on macOS contains a hardcoded dependency on a very
-+      # specific version of libcurses:
-+      #
-+      #   set_target_properties(LLVMSupport PROPERTIES
-+      #     INTERFACE_LINK_LIBRARIES "m;ZLIB::ZLIB;/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk/usr/lib/libcurses.tbd;LLVMDemangle"
-+      #   )
-+      #
-+      # So we are monkey-patching it here
-+      set_target_properties(LLVMSupport PROPERTIES
-+        INTERFACE_LINK_LIBRARIES "z;curses;m;LLVMDemangle")
-+    endif()
-+  endif()
-   list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
- 
-   set(LLVM_MAIN_SRC_DIR "${LLVM_BUILD_MAIN_SRC_DIR}"
