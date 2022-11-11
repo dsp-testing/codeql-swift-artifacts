@@ -28,6 +28,7 @@ skip-test-swift
 skip-build-clang-tools-extra
 skip-build-benchmarks
 skip-build-android
+enable-experimental-string-processing
 
 [preset: codeql-debug]
 debug
@@ -60,4 +61,5 @@ skip-test-swift
 skip-build-clang-tools-extra
 skip-build-benchmarks
 skip-build-android
+enable-experimental-string-processing
 
