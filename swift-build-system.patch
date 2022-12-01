@@ -70,3 +70,31 @@ index 4d77e374deb..88b6645a811 100644
  # These clang header options conflict with 'clang-builtin-headers'.
  list(REMOVE_ITEM _SWIFT_DEFAULT_COMPONENTS "clang-resource-dir-symlink")
  list(REMOVE_ITEM _SWIFT_DEFAULT_COMPONENTS "clang-builtin-headers-in-clang-resource-dir")
+diff --git a/include/swift/AST/Stmt.h b/include/swift/AST/Stmt.h
+index 532e038c386..f013eee2f98 100644
+--- a/include/swift/AST/Stmt.h
++++ b/include/swift/AST/Stmt.h
+@@ -920,7 +920,6 @@ public:
+   /// Get the CaseStmt block to which the fallthrough transfers control.
+   /// Set during Sema.
+   CaseStmt *getFallthroughDest() const {
+-    assert(FallthroughDest && "fallthrough dest is not set until Sema");
+     return FallthroughDest;
+   }
+   void setFallthroughDest(CaseStmt *C) {
+diff --git a/lib/AST/Decl.cpp b/lib/AST/Decl.cpp
+index 75b99a22e73..09115678a82 100644
+--- a/lib/AST/Decl.cpp
++++ b/lib/AST/Decl.cpp
+@@ -1725,7 +1725,10 @@ StringRef PatternBindingEntry::getInitStringRepresentation(
+ 
+ SourceRange PatternBindingDecl::getSourceRange() const {
+   SourceLoc startLoc = getStartLoc();
+-  SourceLoc endLoc = getPatternList().back().getSourceRange().End;
++  SourceLoc endLoc = startLoc;
++  if (!getPatternList().empty()) {
++    endLoc = getPatternList().back().getSourceRange().End;
++  }
+   if (startLoc.isValid() != endLoc.isValid()) return SourceRange();
+   return { startLoc, endLoc };
+ }
