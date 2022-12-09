@@ -59,8 +59,10 @@ def get_platform():
 
 def configure_dummy_project(tmp, *, llvm=None, swift=None):
     print("configuring dummy cmake project")
-    shutil.copy("CMakeLists.txt", tmp / "CMakeLists.txt")
-    shutil.copy("empty.cpp", tmp / "empty.cpp")
+    script_dir = pathlib.Path(os.path.realpath(__file__)).parent
+    print(script_dir)
+    shutil.copy(script_dir / "CMakeLists.txt", tmp / "CMakeLists.txt")
+    shutil.copy(script_dir / "empty.cpp", tmp / "empty.cpp")
     tgt = tmp / "build"
     tgt.mkdir()
     run(["cmake", f"-DCMAKE_PREFIX_PATH={llvm};{swift}", "-DBUILD_SHARED_LIBS=OFF", ".."],
