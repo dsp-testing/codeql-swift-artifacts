@@ -1,5 +1,5 @@
 [preset: codeql-baseline]
-bootstrapping=off
+bootstrapping=hosttools
 
 llvm-cmake-options=-DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD=X86;ARM;AArch64
 
