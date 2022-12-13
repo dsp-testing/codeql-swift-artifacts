@@ -173,14 +173,38 @@ def export_sdk(tgt, swift_source_tree, swift_build_tree):
                     ignore=shutil.ignore_patterns('CMakeLists.txt'))
 
 
-def export_libs(exported_dir, libs):
+def export_stdlibs(exported_dir, swift_build_tree):
+    ext = 'dylib'
+    platform = 'macosx'
+    if get_platform() == "linux":
+        platform = 'linux'
+        ext = 'so'
+    lib_dir = swift_build_tree / 'lib/swift' / platform
+    stdlibs = [
+            f'libswiftCore.{ext}',
+            'libswiftCompatibility50.a',
+            'libswiftCompatibility51.a',
+            'libswiftCompatibilityConcurrency.a',
+            'libswiftCompatibilityDynamicReplacements.a']
+    for stdlib in stdlibs:
+        lib_path = lib_dir / stdlib
+        if lib_path.exists():
+            print(f'Copying {stdlib}')
+            shutil.copy(lib_path, exported_dir)
+        else:
+            print(f'Skipping {stdlib}')
+
+
+def export_libs(exported_dir, libs, swift_build_tree):
     print("exporting libraries")
     exportedlibs = [
             create_static_lib(exported_dir, libs),
             create_shared_lib(exported_dir, libs)
             ]
+
     for l in exportedlibs:
         l.rename(exported_dir / l.name)
+    export_stdlibs(exported_dir, swift_build_tree)
 
 
 def export_headers(exported_dir, swift_source_tree, llvm_build_tree, swift_build_tree):
@@ -217,7 +241,7 @@ def main(opts):
 
     exported = tmp / "exported"
     exported.mkdir()
-    export_libs(exported, libs)
+    export_libs(exported, libs, opts.swift_build_tree)
     export_headers(exported, opts.swift_source_tree, opts.llvm_build_tree, opts.swift_build_tree)
     export_sdk(exported / "sdk", opts.swift_source_tree, opts.swift_build_tree)
 
