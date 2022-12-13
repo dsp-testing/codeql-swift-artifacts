@@ -224,12 +224,6 @@ def zip_dir(src, tgt):
     archive = shutil.make_archive(tgt, 'zip', src)
     print(f"created {archive}")
 
-def tar_dir(src, tgt):
-    tgt = get_tgt(tgt, f"swift-prebuilt-{get_platform()}.tar.gz")
-    print(f"compressing {src.name} to {tgt}")
-    archive = shutil.make_archive(tgt, 'gztar', src)
-    print(f"created {archive}")
-
 
 def main(opts):
     tmp = pathlib.Path('/tmp/llvm-swift')
@@ -246,7 +240,6 @@ def main(opts):
     export_sdk(exported / "sdk", opts.swift_source_tree, opts.swift_build_tree)
 
     zip_dir(exported, opts.output)
-    tar_dir(exported, opts.output)
 
 
 if __name__ == "__main__":
