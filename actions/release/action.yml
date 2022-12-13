@@ -1,0 +1,50 @@
+name: Publish prebuilt package artifacts
+description: Publish prebuilt package artifacts as a GitHub release
+
+runs:
+  using: composite
+  steps:
+    ### For debugging
+
+    - name: Dump environment
+      shell: bash
+      env:
+        GITHUB_CONTEXT: '${{ toJson(github.event) }}'
+      run: env | sort
+
+    - name: Get swift version
+      shell: bash
+      run: |
+        echo "SWIFT_TAG=$(cat codeql-swift-artifacts/swift_version.txt)" | tee -a $GITHUB_ENV
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Publish CLI release
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+        VERSION: ${{ env.SWIFT_TAG }}.${{ github.event.number }}
+      run: |
+        ls
+        file swift-prebuilt-*/*
+
+        echo '```' > notes.txt
+        echo _swift_prebuilt_version = "\"$VERSION.$GITHUB_RUN_NUMBER\"" >> notes.txt
+        echo _swift_sha_map = "{" >> notes.txt
+        find swift-prebuilt-*/*zip | \
+          xargs sha256sum | \
+          sed 's/ /-/g' | sed 's/\//-/g' | \
+          awk -F- ' { print "    \042" $5 "-" $6 "\042: \042" $1 "\042," } ' >> notes.txt
+        echo '}' >> notes.txt
+        echo '```' >> notes.txt
+
+        gh release create \
+          ${{ github.event_name == 'pull_request' && "--draft" }} \
+          --notes-file notes.txt \
+          --repo "dsp-testing/codeql-swift-artifacts" \
+          --title "$VERSION.$GITHUB_RUN_NUMBER" \
+          "$VERSION.$GITHUB_RUN_NUMBER" \
+          swift-prebuilt-*/*.zip > comment.txt
+        cat notes.txt >> comment.txt
+        gh pr comment ${{ github.event.number }} --repo $GITHUB_REPOSITORY -F comment.txt

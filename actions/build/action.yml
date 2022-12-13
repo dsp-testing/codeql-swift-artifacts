@@ -1,0 +1,121 @@
+name: Prebuild LLVM and Swift
+description: Builds the prebuilt package needed by the CodeQL Swift extractor
+
+runs:
+  using: composite
+  steps:
+    ### Prepare
+      - name: Send workflow telemetry to Datadog
+        uses: masci/datadog@863b639c95138e957eb6e1e2499cecb82040a10b
+        with:
+          api-key: '${{ secrets.DATADOG_API_KEY }}'
+          metrics: |
+            - type: count
+              name: codeql_ci_workflow.count
+              value: 1
+              host: '${{ github.repository_owner }}'
+              tags:
+                  - 'branch:${{ github.head_ref }}'
+                  - 'workflow:${{ github.workflow }}'
+      - name: Workdir
+        shell: bash
+        run: |
+          mkdir codeql-swift-prebuild
+
+      - name: Prepare (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install cmake
+          pip install six
+
+      - name: Prepare (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get install -y cmake
+
+      ### For debugging
+
+      - name: Dump environment
+        shell: bash
+        env:
+          GITHUB_CONTEXT: '${{ toJson(github.event) }}'
+        run: env | sort
+
+      - run: uname -a
+        shell: bash
+
+      ### Build Swift
+
+      - name: Copy preset
+        working-directory: codeql-swift-prebuild
+        bash: shell
+        run: |
+          cp codeql-swift-artifacts/swift-build-presets ~/.swift-build-presets
+
+      - name: Get swift version
+        shell: bash
+        run: |
+          echo "SWIFT_TAG=$(cat codeql-swift-artifacts/swift_version.txt)" | tee -a $GITHUB_ENV
+
+      - name: Checkout Swift
+        uses: actions/checkout@v3
+        with:
+          repository: apple/swift
+          path: swift
+          ref: ${{ env.SWIFT_TAG }}
+
+      - name: Checkout Swift dependencies
+        working-directory: codeql-swift-prebuild
+        shell: bash
+        run: |
+          swift/utils/update-checkout --clone --tag ${{ env.SWIFT_TAG }}
+
+      - name: Patch Swift
+        working-directory: swift
+        shell: bash
+        run: |
+          git apply $GITHUB_WORKSPACE/codeql-swift-artifacts/swift-build-system.patch
+
+      - uses: swift-actions/setup-swift@194625b58a582570f61cc707c3b558086c26b723
+        if: runner.os == 'Linux'
+        with:
+          swift-version: 5.7.1
+
+      - name: Build
+        working-directory: codeql-swift-prebuild
+        shell: bash
+        env:
+          SKIP_XCODE_VERSION_CHECK: 1
+        run: |
+          swift/utils/build-script --preset=codeql
+
+      ### Package
+
+      - name: Check build
+        working-directory: codeql-swift-prebuild
+        shell: bash
+        run: |
+          ls build
+          ls build/codeql
+
+      - name: Package
+        shell: bash
+        working-directory: codeql-swift-prebuild
+        run: |
+          codeql-swift-artifacts/pkg_swift_llvm.py \
+            --swift-source-tree swift \
+            --llvm-build-tree build/codeql/llvm-* \
+            --swift-build-tree build/codeql/swift-* \
+            --output swift-prebuilt-${{ runner.os }}-${{ runner.arch }}
+          ls
+          file swift-prebuilt.*
+
+      ### Upload Artifacts
+
+      - name: Upload pre-built artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: swift-prebuilt-${{ runner.os }}-${{ runner.arch }}
+          path: swift-prebuilt-*
