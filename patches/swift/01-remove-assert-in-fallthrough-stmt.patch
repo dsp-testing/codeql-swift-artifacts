@@ -1,0 +1,15 @@
+There are some cases when we extract bad ASTs where we hit this assertion if we compile in debug
+mode. This is undesirable.
+
+diff --git a/include/swift/AST/Stmt.h b/include/swift/AST/Stmt.h
+index 532e038c386..f013eee2f98 100644
+--- a/include/swift/AST/Stmt.h
++++ b/include/swift/AST/Stmt.h
+@@ -920,7 +920,6 @@ public:
+   /// Get the CaseStmt block to which the fallthrough transfers control.
+   /// Set during Sema.
+   CaseStmt *getFallthroughDest() const {
+-    assert(FallthroughDest && "fallthrough dest is not set until Sema");
+     return FallthroughDest;
+   }
+   void setFallthroughDest(CaseStmt *C) {

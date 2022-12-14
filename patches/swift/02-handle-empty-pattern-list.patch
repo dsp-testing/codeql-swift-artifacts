@@ -1,15 +1,6 @@
-diff --git a/include/swift/AST/Stmt.h b/include/swift/AST/Stmt.h
-index 532e038c386..f013eee2f98 100644
---- a/include/swift/AST/Stmt.h
-+++ b/include/swift/AST/Stmt.h
-@@ -920,7 +920,6 @@ public:
-   /// Get the CaseStmt block to which the fallthrough transfers control.
-   /// Set during Sema.
-   CaseStmt *getFallthroughDest() const {
--    assert(FallthroughDest && "fallthrough dest is not set until Sema");
-     return FallthroughDest;
-   }
-   void setFallthroughDest(CaseStmt *C) {
+`PatternBindingDecl::getPatternList()` can in some cases return an empty list, which causes a
+segmentation fault when getting the source range. This case needs to be handled for the extractor.
+
 diff --git a/lib/AST/Decl.cpp b/lib/AST/Decl.cpp
 index 75b99a22e73..09115678a82 100644
 --- a/lib/AST/Decl.cpp
