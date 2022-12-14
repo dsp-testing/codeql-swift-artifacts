@@ -1,3 +1,7 @@
+When running the extractor against a different version of the swift compiler, we provide it the
+original standard library via `-resource-dir`, and we do want that to be lazily compiled out of the
+`.swiftinterface` files. The code removed here explicitly disables that behavior.
+
 diff --git a/lib/Frontend/ModuleInterfaceLoader.cpp b/lib/Frontend/ModuleInterfaceLoader.cpp
 index 2a490a680d8..8d8f48aeed0 100644
 --- a/lib/Frontend/ModuleInterfaceLoader.cpp
