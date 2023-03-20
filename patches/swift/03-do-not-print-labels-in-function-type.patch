@@ -1,0 +1,22 @@
+diff --git a/lib/AST/ASTPrinter.cpp b/lib/AST/ASTPrinter.cpp
+index 31a047bb1f7..63138128e92 100644
+--- a/lib/AST/ASTPrinter.cpp
++++ b/lib/AST/ASTPrinter.cpp
+@@ -5943,7 +5943,7 @@ public:
+                           PrintAST::PrintRequirements);
+     Printer << " ";
+ 
+-   visitAnyFunctionTypeParams(T->getParams(), /*printLabels*/true);
++   visitAnyFunctionTypeParams(T->getParams(), /*printLabels*/false);
+ 
+    if (T->hasExtInfo()) {
+      if (T->isAsync()) {
+@@ -6473,7 +6473,7 @@ void AnyFunctionType::printParams(ArrayRef<AnyFunctionType::Param> Params,
+                                   ASTPrinter &Printer,
+                                   const PrintOptions &PO) {
+   TypePrinter(Printer, PO).visitAnyFunctionTypeParams(Params,
+-                                                      /*printLabels*/true);
++                                                      /*printLabels*/false);
+ }
+ 
+ std::string
