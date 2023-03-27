@@ -1,0 +1,107 @@
+When using our extractor as a plugin, it turns out there special opaque pointers
+are different in the frontend and our extractor contexts, leading to special
+members (subscripts, inits, deinits) to lose their name.
+
+This avoids using this opaque data pointers and relies instead on actual data
+contained therein. This special data is distinguished from normal identifiers by
+using the unprintable `\1` as first character, and `s`, `c` or `d` as second
+character for subscript, constructors and destructors respectively.
+
+diff --git a/include/swift/AST/Identifier.h b/include/swift/AST/Identifier.h
+index 6f65385e097..6ec0da0dd09 100644
+--- a/include/swift/AST/Identifier.h
++++ b/include/swift/AST/Identifier.h
+@@ -72,8 +72,12 @@ private:
+            && "Identifier pointer does not use any spare bits");
+   }
+ 
+-  /// A type with the alignment expected of a valid \c Identifier::Pointer .
+-  struct alignas(uint64_t) Aligner {};
++  /** A type with the alignment expected of a valid \c Identifier::Pointer
++   *  The actual value is used to distinguish special identifiers
++   */
++  struct alignas(uint64_t) Aligner {
++    char value[3];
++  };
+ 
+   static_assert(alignof(Aligner) >= RequiredAlignment,
+                 "Identifier table will provide enough spare bits");
+@@ -271,7 +275,7 @@ public:
+   };
+   
+ private:
+-  /// In a special DeclName representing a subscript, this opaque pointer
++  /// In a special DeclName representing a subscript, this opaque structure
+   /// is used as the data of the base name identifier.
+   /// This is an implementation detail that should never leak outside of
+   /// DeclName.
+@@ -289,29 +293,19 @@ public:
+   DeclBaseName(Identifier I) : Ident(I) {}
+ 
+   static DeclBaseName createSubscript() {
+-    return DeclBaseName(Identifier((const char *)&SubscriptIdentifierData));
++    return DeclBaseName(Identifier(SubscriptIdentifierData.value));
+   }
+ 
+   static DeclBaseName createConstructor() {
+-    return DeclBaseName(Identifier((const char *)&ConstructorIdentifierData));
++    return DeclBaseName(Identifier(ConstructorIdentifierData.value));
+   }
+ 
+   static DeclBaseName createDestructor() {
+-    return DeclBaseName(Identifier((const char *)&DestructorIdentifierData));
+-  }
+-
+-  Kind getKind() const {
+-    if (Ident.get() == (const char *)&SubscriptIdentifierData) {
+-      return Kind::Subscript;
+-    } else if (Ident.get() == (const char *)&ConstructorIdentifierData) {
+-      return Kind::Constructor;
+-    } else if (Ident.get() == (const char *)&DestructorIdentifierData) {
+-        return Kind::Destructor;
+-    } else {
+-      return Kind::Normal;
+-    }
++    return DeclBaseName(Identifier(DestructorIdentifierData.value));
+   }
+ 
++  Kind getKind() const;
++
+   bool isSpecial() const { return getKind() != Kind::Normal; }
+ 
+   bool isSubscript() const { return getKind() == Kind::Subscript; }
+diff --git a/lib/AST/Identifier.cpp b/lib/AST/Identifier.cpp
+index da9ffbc3ee9..d870d0d85e6 100644
+--- a/lib/AST/Identifier.cpp
++++ b/lib/AST/Identifier.cpp
+@@ -23,9 +23,21 @@
+ #include "clang/Basic/CharInfo.h"
+ using namespace swift;
+ 
+-constexpr const Identifier::Aligner DeclBaseName::SubscriptIdentifierData{};
+-constexpr const Identifier::Aligner DeclBaseName::ConstructorIdentifierData{};
+-constexpr const Identifier::Aligner DeclBaseName::DestructorIdentifierData{};
++constexpr const Identifier::Aligner DeclBaseName::SubscriptIdentifierData{"\1s"};
++constexpr const Identifier::Aligner DeclBaseName::ConstructorIdentifierData{"\1c"};
++constexpr const Identifier::Aligner DeclBaseName::DestructorIdentifierData{"\1d"};
++
++DeclBaseName::Kind DeclBaseName::getKind() const {
++  if (!Ident.get() || Ident.get()[0] != '\1') {
++    return Kind::Normal;
++  }
++  switch(Ident.get()[1]) {
++    case 's': return Kind::Subscript;
++    case 'c': return Kind::Constructor;
++    case 'd': return Kind::Destructor;
++    default: return Kind::Normal;
++  }
++}
+ 
+ raw_ostream &llvm::operator<<(raw_ostream &OS, Identifier I) {
+   if (I.get() == nullptr)
+@@ -305,5 +317,3 @@ StringRef ObjCSelector::getString(llvm::SmallVectorImpl<char> &scratch) const {
+ void ObjCSelector::dump() const {
+   llvm::errs() << *this << "\n";
+ }
+-
+-

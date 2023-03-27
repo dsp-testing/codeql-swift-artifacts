@@ -1,0 +1,118 @@
+Make calls to `performFrontend` use an observer taken from `getFrontendObserver`, which
+is provided by a shared library. Substituting the shared library can plug in our
+extractor.
+
+diff --git a/cmake/modules/AddSwift.cmake b/cmake/modules/AddSwift.cmake
+index 6d93e52f1d5..10225f40fb1 100644
+--- a/cmake/modules/AddSwift.cmake
++++ b/cmake/modules/AddSwift.cmake
+@@ -715,6 +715,7 @@ function(add_swift_host_tool executable)
+ 
+         # Include the abi stable system stdlib in our rpath.
+         list(APPEND RPATH_LIST "/usr/lib/swift")
++        list(APPEND RPATH_LIST "@executable_path/../lib")
+ 
+       elseif(BOOTSTRAPPING_MODE STREQUAL "CROSSCOMPILE-WITH-HOSTLIBS")
+ 
+@@ -798,7 +799,7 @@ function(add_swift_host_tool executable)
+       if(BOOTSTRAPPING_MODE STREQUAL "HOSTTOOLS")
+         set_target_properties(${executable} PROPERTIES
+           BUILD_WITH_INSTALL_RPATH YES
+-          INSTALL_RPATH  "${host_lib_dir}")
++          INSTALL_RPATH  "${host_lib_dir};$ORIGIN/../lib")
+       else()
+         set_target_properties(${executable} PROPERTIES
+           BUILD_WITH_INSTALL_RPATH YES
+diff --git a/include/swift/DriverTool/FrontendObserver.h b/include/swift/DriverTool/FrontendObserver.h
+new file mode 100644
+index 00000000000..4ac9b299a13
+--- /dev/null
++++ b/include/swift/DriverTool/FrontendObserver.h
+@@ -0,0 +1,10 @@
++#pragma once
++
++#include "llvm/ADT/ArrayRef.h"
++#include "swift/FrontendTool/FrontendTool.h"
++
++namespace swift {
++
++FrontendObserver* getFrontendObserver(llvm::ArrayRef<const char*> argv);
++
++} // namespace swift
+diff --git a/lib/DriverTool/CMakeLists.txt b/lib/DriverTool/CMakeLists.txt
+index 869c00fece9..b1f49a976d5 100644
+--- a/lib/DriverTool/CMakeLists.txt
++++ b/lib/DriverTool/CMakeLists.txt
+@@ -14,16 +14,24 @@ set(driver_common_libs
+                 swiftSymbolGraphGen
+                 LLVMBitstreamReader)
+ 
++add_swift_host_library(swiftFrontendObserver SHARED
++   swift_frontend_observer.cpp)
++target_link_libraries(swiftFrontendObserver
++        PUBLIC
++        swiftFrontendTool)
++
+ add_swift_host_library(swiftDriverTool STATIC
+   ${driver_sources_and_options}
+ )
+ target_link_libraries(swiftDriverTool
+                       PUBLIC
+-                      ${driver_common_libs})
++                      ${driver_common_libs}
++                      swiftFrontendObserver)
+ 
+ # If building as part of clang, make sure the headers are installed.
+ if(NOT SWIFT_BUILT_STANDALONE)
+   add_dependencies(swiftDriverTool clang-resource-headers)
+ endif()
+ 
++set_swift_llvm_is_available(swiftFrontendObserver)
+ set_swift_llvm_is_available(swiftDriverTool)
+diff --git a/lib/DriverTool/driver.cpp b/lib/DriverTool/driver.cpp
+index f71e2de9eae..a500e30827f 100644
+--- a/lib/DriverTool/driver.cpp
++++ b/lib/DriverTool/driver.cpp
+@@ -31,6 +31,7 @@
+ #include "swift/Frontend/PrintingDiagnosticConsumer.h"
+ #include "swift/FrontendTool/FrontendTool.h"
+ #include "swift/DriverTool/DriverTool.h"
++#include "swift/DriverTool/FrontendObserver.h"
+ #include "llvm/ADT/SmallVector.h"
+ #include "llvm/Support/CommandLine.h"
+ #include "llvm/Support/ConvertUTF.h"
+@@ -197,7 +198,8 @@ static int run_driver(StringRef ExecName,
+     if (FirstArg == "-frontend") {
+       return performFrontend(llvm::makeArrayRef(argv.data()+2,
+                                                 argv.data()+argv.size()),
+-                             argv[0], (void *)(intptr_t)getExecutablePath);
++                             argv[0], (void *)(intptr_t)getExecutablePath,
++                             getFrontendObserver(argv));
+     }
+     if (FirstArg == "-modulewrap") {
+       return modulewrap_main(llvm::makeArrayRef(argv.data()+2,
+@@ -211,7 +213,8 @@ static int run_driver(StringRef ExecName,
+         && ExecName == "swift-frontend") {
+       return performFrontend(llvm::makeArrayRef(argv.data()+1,
+                                                 argv.data()+argv.size()),
+-                             argv[0], (void *)(intptr_t)getExecutablePath);
++                             argv[0], (void *)(intptr_t)getExecutablePath,
++                             getFrontendObserver(argv));
+     }
+ 
+     if (FirstArg == "repl") {
+diff --git a/lib/DriverTool/swift_frontend_observer.cpp b/lib/DriverTool/swift_frontend_observer.cpp
+new file mode 100644
+index 00000000000..e16b2f970cd
+--- /dev/null
++++ b/lib/DriverTool/swift_frontend_observer.cpp
+@@ -0,0 +1,9 @@
++#include "swift/DriverTool/FrontendObserver.h"
++
++namespace swift {
++
++FrontendObserver* getFrontendObserver(llvm::ArrayRef<const char*>) {
++  return nullptr;
++}
++
++} // namespace swift

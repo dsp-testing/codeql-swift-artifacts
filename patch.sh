@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 PATCH_DIR="$(cd "$(dirname "$0")/patches"; pwd)"
 
