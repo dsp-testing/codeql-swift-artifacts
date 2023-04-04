@@ -1,0 +1,49 @@
+Add a `finished(int status)` method to `FrontendObserver`, fired when the frontend has finished.
+
+diff --git a/include/swift/FrontendTool/FrontendTool.h b/include/swift/FrontendTool/FrontendTool.h
+index 184e6196918..ef5c3eafe69 100644
+--- a/include/swift/FrontendTool/FrontendTool.h
++++ b/include/swift/FrontendTool/FrontendTool.h
+@@ -53,6 +53,9 @@ public:
+   /// The frontend has executed the SIL optimization and diagnostics pipelines.
+   virtual void performedSILProcessing(SILModule &module);
+ 
++  /// The frontend has finished executing with the given return value
++  virtual void finished(int status);
++
+   // TODO: maybe enhance this interface to hear about IRGen and LLVM
+   // progress.
+ };
+diff --git a/lib/FrontendTool/FrontendTool.cpp b/lib/FrontendTool/FrontendTool.cpp
+index 811fb912f8a..afa2034aa71 100644
+--- a/lib/FrontendTool/FrontendTool.cpp
++++ b/lib/FrontendTool/FrontendTool.cpp
+@@ -1924,7 +1924,7 @@ public:
+   };
+ };
+ 
+-int swift::performFrontend(ArrayRef<const char *> Args,
++static int performFrontendImpl(ArrayRef<const char *> Args,
+                            const char *Argv0, void *MainAddr,
+                            FrontendObserver *observer) {
+   INITIALIZE_LLVM();
+@@ -2263,8 +2263,19 @@ int swift::performFrontend(ArrayRef<const char *> Args,
+   return r;
+ }
+ 
++int swift::performFrontend(ArrayRef<const char *> Args,
++                           const char *Argv0, void *MainAddr,
++                           FrontendObserver *observer) {
++  auto ret = performFrontendImpl(Args, Argv0, MainAddr, observer);
++  if (observer) {
++    observer->finished(ret);
++  }
++  return ret;
++}
++
+ void FrontendObserver::parsedArgs(CompilerInvocation &invocation) {}
+ void FrontendObserver::configuredCompiler(CompilerInstance &instance) {}
+ void FrontendObserver::performedSemanticAnalysis(CompilerInstance &instance) {}
+ void FrontendObserver::performedSILGeneration(SILModule &module) {}
+ void FrontendObserver::performedSILProcessing(SILModule &module) {}
++void FrontendObserver::finished(int status) {}

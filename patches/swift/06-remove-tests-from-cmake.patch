@@ -1,0 +1,23 @@
+diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
+index 60b0ae22368..f99551bbf7b 100644
+--- a/tools/CMakeLists.txt
++++ b/tools/CMakeLists.txt
+@@ -40,18 +40,6 @@ if(SWIFT_BUILD_SYNTAXPARSERLIB)
+   endif()
+ endif()
+ 
+-if(SWIFT_INCLUDE_TESTS OR SWIFT_INCLUDE_TEST_BINARIES)
+-  add_swift_tool_subdirectory(swift-ide-test)
+-  add_swift_tool_subdirectory(swift-remoteast-test)
+-  add_swift_tool_subdirectory(lldb-moduleimport-test)
+-  add_swift_tool_subdirectory(swift-syntax-test)
+-endif()
+-
+-if(LLVM_USE_SANITIZE_COVERAGE)
+-add_swift_tool_subdirectory(swift-demangle-fuzzer)
+-add_swift_tool_subdirectory(swift-reflection-fuzzer)
+-endif()
+-
+ if(SWIFT_BUILD_SOURCEKIT)
+   add_swift_tool_subdirectory(SourceKit)
+ endif()
