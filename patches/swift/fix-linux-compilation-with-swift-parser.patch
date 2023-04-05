@@ -1,0 +1,29 @@
+diff --git a/cmake/modules/AddSwift.cmake b/cmake/modules/AddSwift.cmake
+index 58c7eb1bd4f..7d321882e8d 100644
+--- a/cmake/modules/AddSwift.cmake
++++ b/cmake/modules/AddSwift.cmake
+@@ -922,7 +922,7 @@ function(add_swift_host_tool executable)
+     set_property(
+       TARGET ${executable}
+       APPEND PROPERTY INSTALL_RPATH
+-        "@executable_path/../${extra_relative_rpath}lib/swift/host")
++        "$ORIGIN/../${extra_relative_rpath}lib/swift/host")
+   endif()
+ 
+   if(ASHT_THINLTO_LD64_ADD_FLTO_CODEGEN_ONLY)
+diff --git a/lib/ASTGen/CMakeLists.txt b/lib/ASTGen/CMakeLists.txt
+index c7334a6da0b..2a0cb80b743 100644
+--- a/lib/ASTGen/CMakeLists.txt
++++ b/lib/ASTGen/CMakeLists.txt
+@@ -1,4 +1,11 @@
+ if (SWIFT_SWIFT_PARSER)
++  if (SWIFT_HOST_VARIANT_SDK STREQUAL "LINUX")
++    # including libdispatch leads to multiple module definition problems, as it seems
++    # it is already available to the swift toolchain
++    get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
++    list(REMOVE_ITEM dirs "${SWIFT_PATH_TO_LIBDISPATCH_SOURCE}")
++    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES "${dirs}")
++  endif()
+   # Ensure that we do not link the _StringProcessing module. But we can
+   # only pass this flag for new-enough compilers that support it.
+   file(WRITE "${CMAKE_BINARY_DIR}/tmp/empty-check-string-processing.swift" "")
