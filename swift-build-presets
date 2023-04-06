@@ -28,6 +28,10 @@ skip-build-android
 enable-experimental-string-processing
 swift-enable-experimental-string-processing=1
 
+no-assertions
+
+reconfigure
+
 [preset: codeql]
 mixin-preset=codeql-baseline
 release
@@ -37,4 +41,3 @@ build-subdir=codeql
 mixin-preset=codeql-baseline
 debug
 build-subdir=codeql-debug
-

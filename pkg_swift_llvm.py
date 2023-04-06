@@ -34,6 +34,8 @@ def getoptions():
 
 REQUIRED_CMAKE_PACKAGES = ["LLVM", "Clang", "Swift", "SwiftSyntax"]
 
+EXPORTED_LIB = "CodeQLSwiftFrontendTool"
+
 Libs = namedtuple("Libs", ("static", "shared", "linker_flags"))
 
 
@@ -87,13 +89,10 @@ def get_libs(configured):
     ret = Libs([], [], [])
     for l in libs:
         if l.endswith(".a"):
-            ret.static.append((configured / l).resolve())
+            ret.static.append((configured / l).absolute())
         elif l.endswith(".so") or l.endswith(".tbd") or l.endswith(".dylib"):
-            l = pathlib.Path(l).stem
-            ret.shared.append(f"-l{l[3:]}")  # drop 'lib' prefix and '.so' suffix
-        elif l.startswith("-l"):
-            ret.shared.append(l)
-        elif l.startswith("-L") or l.startswith("-Wl"):
+            ret.shared.append((configured / l).absolute())
+        elif l.startswith(("-L", "-Wl", "-l")):
             ret.linker_flags.append(l)
         else:
             raise ValueError(f"cannot understand link.txt: " + l)
@@ -103,11 +102,26 @@ def get_libs(configured):
 def get_tgt(tgt, filename):
     if tgt.is_dir():
         tgt /= filename
-    return tgt.resolve()
+    return tgt.absolute()
 
+
+def create_static_lib(tgt, libs):
+    tgt = get_tgt(tgt, f"lib{EXPORTED_LIB}.a")
+    print(f"packaging {tgt.name}")
+    if sys.platform == 'linux':
+        includedlibs = "\n".join(f"addlib {l}" for l in libs.static)
+        mriscript = f"create {tgt}\n{includedlibs}\nsave\nend"
+        run(["ar", "-M"], cwd=tgt.parent, input=mriscript)
+    else:
+        libtool_args = ["libtool", "-static"]
+        libtool_args.extend(libs.static)
+        libtool_args.append("-o")
+        libtool_args.append(str(tgt))
+        run(libtool_args, cwd=tgt.parent)
+    return tgt
 
 def copy_includes(src, tgt):
-    print("copying includes")
+    print(f"copying includes from {src}")
     for dir, exts in (("include", ("h", "def", "inc")), ("stdlib", ("h",))):
         srcdir = src / dir
         for ext in exts:
@@ -128,8 +142,8 @@ def export_sdk(tgt, swift_source_tree, swift_build_tree):
         srcdir /= "macosx"
     for mod in srcdir.glob("*.swiftmodule"):
         shutil.copytree(mod, tgtdir / mod.name)
-    shutil.copytree(swift_source_tree / "stdlib" / "public" / "SwiftShims",
-                    tgt / "usr" / "include" / "SwiftShims",
+    shutil.copytree(swift_source_tree / "stdlib" / "public" / "SwiftShims" / "swift" / "shims",
+                    tgt / "usr" / "lib" / "swift" / "shims",
                     ignore=shutil.ignore_patterns('CMakeLists.txt'))
 
 
@@ -157,10 +171,11 @@ def export_stdlibs(exported_dir, swift_build_tree):
 
 def export_libs(exported_dir, libs, swift_build_tree):
     print("exporting libraries")
-    # index libraries to preserve linking order
-    for i, lib in enumerate(libs.static):
-        assert lib.name.startswith("lib")
-        shutil.copy(lib, exported_dir / f'lib{i:03}{lib.name[3:]}')
+    create_static_lib(exported_dir, libs)
+    for lib in libs.shared:
+        # export libraries under the build tree (e.g. libSwiftSyntax.so)
+        if lib.is_relative_to(swift_build_tree.parent):
+            shutil.copy(lib, exported_dir)
     export_stdlibs(exported_dir, swift_build_tree)
 
 
