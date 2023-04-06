@@ -14,10 +14,8 @@ from collections import namedtuple
 
 def getoptions():
     parser = argparse.ArgumentParser(description="package swift for codeql compilation")
-    parser.add_argument(f"--llvm-build-tree", required=True, type=resolve,
-                        metavar="DIR", help=f"path to LLVM build tree")
-    parser.add_argument(f"--swift-build-tree", required=True, type=resolve,
-                        metavar="DIR", help=f"path to Swift build tree")
+    parser.add_argument(f"--build-tree", required=True, type=resolve,
+                        metavar="DIR", help=f"path to the build tree")
     parser.add_argument(f"--swift-source-tree", required=True, type=resolve,
                         metavar="DIR", help=f"path to Swift source tree")
 
@@ -34,9 +32,9 @@ def getoptions():
     return opts
 
 
-Libs = namedtuple("Libs", ("archive", "static", "shared", "linker_flags"))
+REQUIRED_CMAKE_PACKAGES = ["LLVM", "Clang", "Swift", "SwiftSyntax"]
 
-EXPORTED_LIB = "CodeQLSwiftFrontendTool"
+Libs = namedtuple("Libs", ("static", "shared", "linker_flags"))
 
 
 def resolve(p):
@@ -50,14 +48,22 @@ def run(prog, *, cwd, env=None, input=None):
         runenv.update(env)
     else:
         runenv = None
-    subprocess.run(prog, cwd=cwd, env=runenv, input=input, text=True)
+    subprocess.run(prog, cwd=cwd, env=runenv, input=input, text=True, check=True)
+
+
+def get_cmake_package_locations(build_tree):
+    build_tree = pathlib.Path(build_tree)
+    return {
+        package: next(build_tree.rglob(f"{package}Config.cmake"))
+        for package in REQUIRED_CMAKE_PACKAGES
+    }
 
 
 def get_platform():
     return "linux" if platform.system() == "Linux" else "macos"
 
 
-def configure_dummy_project(tmp, *, llvm=None, swift=None):
+def configure_dummy_project(tmp, package_locations):
     print("configuring dummy cmake project")
     script_dir = pathlib.Path(os.path.realpath(__file__)).parent
     print(script_dir)
@@ -65,8 +71,11 @@ def configure_dummy_project(tmp, *, llvm=None, swift=None):
     shutil.copy(script_dir / "empty.cpp", tmp / "empty.cpp")
     tgt = tmp / "build"
     tgt.mkdir()
-    run(["cmake", f"-DCMAKE_PREFIX_PATH={llvm};{swift}", "-DBUILD_SHARED_LIBS=OFF", ".."],
-        cwd=tgt)
+    cmd = ["cmake", "..", "-DBUILD_SHARED_LIBS=OFF"]
+    cmd += [
+        f"-D{package}_DIR={location.parent}" for package, location in package_locations.items()
+    ]
+    run(cmd, cwd=tgt)
     return tgt
 
 
@@ -74,11 +83,11 @@ def get_libs(configured):
     print("extracting linking information from dummy project")
     with open(configured / "CMakeFiles" / "codeql-swift-artifacts.dir" / "link.txt") as link:
         libs = link.read().split()
-        libs = libs[libs.index('codeql-swift-artifacts')+1:] # skip up to -o dummy
-    ret = Libs([], [], [], [])
+        libs = libs[libs.index('codeql-swift-artifacts') + 1:]  # skip up to -o dummy
+    ret = Libs([], [], [])
     for l in libs:
         if l.endswith(".a"):
-            ret.static.append(str((configured / l).resolve()))
+            ret.static.append((configured / l).resolve())
         elif l.endswith(".so") or l.endswith(".tbd") or l.endswith(".dylib"):
             l = pathlib.Path(l).stem
             ret.shared.append(f"-l{l[3:]}")  # drop 'lib' prefix and '.so' suffix
@@ -97,55 +106,6 @@ def get_tgt(tgt, filename):
     return tgt.resolve()
 
 
-def create_static_lib(tgt, libs):
-    tgt = get_tgt(tgt, f"lib{EXPORTED_LIB}.a")
-    print(f"packaging {tgt.name}")
-    if sys.platform == 'linux':
-        includedlibs = "\n".join(f"addlib {l}" for l in libs.archive + libs.static)
-        mriscript = f"create {tgt}\n{includedlibs}\nsave\nend"
-        run(["ar", "-M"], cwd=tgt.parent, input=mriscript)
-    else:
-        libtool_args = ["libtool", "-static"]
-        libtool_args.extend(libs.archive)
-        libtool_args.extend(libs.static)
-        libtool_args.append("-o")
-        libtool_args.append(str(tgt))
-        run(libtool_args, cwd=tgt.parent)
-    return tgt
-
-
-def create_shared_lib(tgt, libs):
-    ext = "so"
-    if sys.platform != 'linux':
-        ext = "dylib"
-    libname = f"lib{EXPORTED_LIB}.{ext}"
-    tgt = get_tgt(tgt, libname)
-    print(f"packaging {libname}")
-    compiler = os.environ.get("CC", "clang")
-    cmd = [compiler, "-shared"]
-    cmd.extend(libs.linker_flags)
-
-    if sys.platform == 'linux':
-        cmd.append("-Wl,--whole-archive")
-    else:
-        cmd.append("-Wl,-all_load")
-
-    cmd.append(f"-o{tgt}")
-    cmd.extend(libs.archive)
-
-    if sys.platform == 'linux':
-        cmd.append("-Wl,--no-whole-archive")
-    else:
-        cmd.append("-lc++")
-
-    cmd.extend(libs.static)
-    cmd.extend(libs.shared)
-    run(cmd, cwd=tgt.parent)
-    if sys.platform != "linux":
-        run(["install_name_tool", "-id", f"@executable_path/{libname}", libname], cwd=tgt.parent)
-    return tgt
-
-
 def copy_includes(src, tgt):
     print("copying includes")
     for dir, exts in (("include", ("h", "def", "inc")), ("stdlib", ("h",))):
@@ -159,7 +119,7 @@ def copy_includes(src, tgt):
 
 def export_sdk(tgt, swift_source_tree, swift_build_tree):
     print("assembling sdk")
-    srcdir = swift_build_tree/ "lib" / "swift"
+    srcdir = swift_build_tree / "lib" / "swift"
     tgtdir = tgt / "usr" / "lib" / "swift"
     if get_platform() == "linux":
         srcdir /= "linux"
@@ -181,11 +141,11 @@ def export_stdlibs(exported_dir, swift_build_tree):
         ext = 'so'
     lib_dir = swift_build_tree / 'lib/swift' / platform
     stdlibs = [
-            f'libswiftCore.{ext}',
-            'libswiftCompatibility50.a',
-            'libswiftCompatibility51.a',
-            'libswiftCompatibilityConcurrency.a',
-            'libswiftCompatibilityDynamicReplacements.a']
+        f'libswiftCore.{ext}',
+        'libswiftCompatibility50.a',
+        'libswiftCompatibility51.a',
+        'libswiftCompatibilityConcurrency.a',
+        'libswiftCompatibilityDynamicReplacements.a']
     for stdlib in stdlibs:
         lib_path = lib_dir / stdlib
         if lib_path.exists():
@@ -197,13 +157,10 @@ def export_stdlibs(exported_dir, swift_build_tree):
 
 def export_libs(exported_dir, libs, swift_build_tree):
     print("exporting libraries")
-    exportedlibs = [
-            create_static_lib(exported_dir, libs),
-            create_shared_lib(exported_dir, libs)
-            ]
-
-    for l in exportedlibs:
-        l.rename(exported_dir / l.name)
+    # index libraries to preserve linking order
+    for i, lib in enumerate(libs.static):
+        assert lib.name.startswith("lib")
+        shutil.copy(lib, exported_dir / f'lib{i:03}{lib.name[3:]}')
     export_stdlibs(exported_dir, swift_build_tree)
 
 
@@ -213,7 +170,8 @@ def export_headers(exported_dir, swift_source_tree, llvm_build_tree, swift_build
     llvm_source_tree = swift_source_tree.parent / 'llvm-project/llvm'
     clang_source_tree = swift_source_tree.parent / 'llvm-project/clang'
     clang_tools_build_tree = llvm_build_tree / 'tools/clang'
-    header_dirs = [ llvm_source_tree, clang_source_tree, swift_source_tree, llvm_build_tree, swift_build_tree, clang_tools_build_tree ]
+    header_dirs = [llvm_source_tree, clang_source_tree, swift_source_tree, llvm_build_tree, swift_build_tree,
+                   clang_tools_build_tree]
     for h in header_dirs:
         copy_includes(h, exported_dir)
 
@@ -230,18 +188,19 @@ def main(opts):
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
     os.mkdir(tmp)
-    configured = configure_dummy_project(tmp, llvm=opts.llvm_build_tree, swift=opts.swift_build_tree)
+    configured = configure_dummy_project(tmp, get_cmake_package_locations(opts.build_tree))
     libs = get_libs(configured)
 
     exported = tmp / "exported"
     exported.mkdir()
-    export_libs(exported, libs, opts.swift_build_tree)
-    export_headers(exported, opts.swift_source_tree, opts.llvm_build_tree, opts.swift_build_tree)
-    export_sdk(exported / "sdk", opts.swift_source_tree, opts.swift_build_tree)
+    llvm_build_tree = next(pathlib.Path(opts.build_tree).glob("llvm-*"))
+    swift_build_tree = next(pathlib.Path(opts.build_tree).glob("swift-*"))
+    export_libs(exported, libs, swift_build_tree)
+    export_headers(exported, opts.swift_source_tree, llvm_build_tree, swift_build_tree)
+    export_sdk(exported / "sdk", opts.swift_source_tree, swift_build_tree)
 
     zip_dir(exported, opts.output)
 
 
 if __name__ == "__main__":
     main(getoptions())
-

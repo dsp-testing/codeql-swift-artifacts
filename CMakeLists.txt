@@ -4,6 +4,7 @@ project(codeql-swift-artifacts C CXX)
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
 find_package(Swift REQUIRED CONFIG)
+find_package(SwiftSyntax REQUIRED CONFIG)
 
 message("Using LLVM_CONFIG: ${Swift_CONFIG}")
 message("Using Clang_CONFIG: ${LLVM_CONFIG}")
@@ -31,4 +32,3 @@ if(APPLE)
   target_link_directories(codeql-swift-artifacts PUBLIC ${TOOLCHAIN_LIB_DIR})
   target_link_directories(codeql-swift-artifacts PUBLIC ${CODEQL_MACOS_SDK_PATH}/usr/lib/swift)
 endif()
-
