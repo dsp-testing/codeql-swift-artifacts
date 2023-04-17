@@ -1,13 +1,27 @@
 diff --git a/cmake/modules/AddSwift.cmake b/cmake/modules/AddSwift.cmake
-index 58c7eb1bd4f..7d321882e8d 100644
+index 58c7eb1bd4f..da56fbb1c20 100644
 --- a/cmake/modules/AddSwift.cmake
 +++ b/cmake/modules/AddSwift.cmake
-@@ -922,7 +922,7 @@ function(add_swift_host_tool executable)
-     set_property(
-       TARGET ${executable}
-       APPEND PROPERTY INSTALL_RPATH
+@@ -918,11 +918,17 @@ function(add_swift_host_tool executable)
+         set(extra_relative_rpath "../")
+       endif()
+     endif()
+-
+-    set_property(
+-      TARGET ${executable}
+-      APPEND PROPERTY INSTALL_RPATH
 -        "@executable_path/../${extra_relative_rpath}lib/swift/host")
-+        "$ORIGIN/../${extra_relative_rpath}lib/swift/host")
++    if (SWIFT_HOST_VARIANT_SDK STREQUAL LINUX)
++      set_property(
++        TARGET ${executable}
++        APPEND PROPERTY INSTALL_RPATH
++	  "$ORIGIN/../${extra_relative_rpath}lib/swift/host")
++    else()
++      set_property(
++        TARGET ${executable}
++        APPEND PROPERTY INSTALL_RPATH
++	  "@executable_path/../${extra_relative_rpath}lib/swift/host")
++    endif()
    endif()
  
    if(ASHT_THINLTO_LD64_ADD_FLTO_CODEGEN_ONLY)
