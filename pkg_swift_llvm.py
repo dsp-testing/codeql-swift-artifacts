@@ -32,8 +32,6 @@ def getoptions():
     return opts
 
 
-REQUIRED_CMAKE_PACKAGES = ["LLVM", "Clang", "Swift", "SwiftSyntax"]
-
 EXPORTED_LIB = "CodeQLSwiftFrontendTool"
 
 Libs = namedtuple("Libs", ("static", "shared", "linker_flags"))
@@ -57,7 +55,7 @@ def get_platform():
     return "linux" if platform.system() == "Linux" else "macos"
 
 
-def configure_dummy_project(tmp, llvm, swift, swift_syntax):
+def configure_dummy_project(tmp, prefixes):
     print("configuring dummy cmake project")
     script_dir = pathlib.Path(os.path.realpath(__file__)).parent
     print(script_dir)
@@ -65,7 +63,8 @@ def configure_dummy_project(tmp, llvm, swift, swift_syntax):
     shutil.copy(script_dir / "empty.cpp", tmp / "empty.cpp")
     tgt = tmp / "build"
     tgt.mkdir()
-    run(["cmake", f"-DCMAKE_PREFIX_PATH={llvm};{swift};{swift_syntax}/cmake/modules", "-DBUILD_SHARED_LIBS=OFF", ".."], cwd=tgt)
+    prefixes = ';'.join(str(p) for p in prefixes)
+    run(["cmake", f"-DCMAKE_PREFIX_PATH={prefixes}", "-DBUILD_SHARED_LIBS=OFF", ".."], cwd=tgt)
     return tgt
 
 
@@ -107,6 +106,7 @@ def create_static_lib(tgt, libs):
         libtool_args.append(str(tgt))
         run(libtool_args, cwd=tgt.parent)
     return tgt
+
 
 def copy_includes(src, tgt):
     print(f"copying includes from {src}")
@@ -191,10 +191,11 @@ def main(opts):
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
     os.mkdir(tmp)
-    llvm_build_tree = next(pathlib.Path(opts.build_tree).glob("llvm-*"))
-    swift_build_tree = next(pathlib.Path(opts.build_tree).glob("swift-*"))
-    earlyswiftsyntax_build_tree = next(pathlib.Path(opts.build_tree).glob("earlyswiftsyntax-*"))
-    configured = configure_dummy_project(tmp, llvm_build_tree, swift_build_tree, earlyswiftsyntax_build_tree)
+    llvm_build_tree = next(opts.build_tree.glob("llvm-*"))
+    swift_build_tree = next(opts.build_tree.glob("swift-*"))
+    earlyswiftsyntax_build_tree = next(opts.build_tree.glob("earlyswiftsyntax-*"))
+    configured = configure_dummy_project(tmp, prefixes=[llvm_build_tree, swift_build_tree,
+                                                        earlyswiftsyntax_build_tree / "cmake" / "modules"])
     libs = get_libs(configured)
 
     exported = tmp / "exported"
