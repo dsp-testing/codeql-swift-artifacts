@@ -53,19 +53,11 @@ def run(prog, *, cwd, env=None, input=None):
     subprocess.run(prog, cwd=cwd, env=runenv, input=input, text=True, check=True)
 
 
-def get_cmake_package_locations(build_tree):
-    build_tree = pathlib.Path(build_tree)
-    return {
-        package: next(build_tree.rglob(f"{package}Config.cmake"))
-        for package in REQUIRED_CMAKE_PACKAGES
-    }
-
-
 def get_platform():
     return "linux" if platform.system() == "Linux" else "macos"
 
 
-def configure_dummy_project(tmp, package_locations):
+def configure_dummy_project(tmp, llvm, swift, swift_syntax):
     print("configuring dummy cmake project")
     script_dir = pathlib.Path(os.path.realpath(__file__)).parent
     print(script_dir)
@@ -73,10 +65,7 @@ def configure_dummy_project(tmp, package_locations):
     shutil.copy(script_dir / "empty.cpp", tmp / "empty.cpp")
     tgt = tmp / "build"
     tgt.mkdir()
-    cmd = ["cmake", "..", "-DBUILD_SHARED_LIBS=OFF"]
-    cmd += [
-        f"-D{package}_DIR={location.parent}" for package, location in package_locations.items()
-    ]
+    run(["cmake", f"-DCMAKE_PREFIX_PATH={llvm};{swift};{swift_syntax}/cmake/modules", "-DBUILD_SHARED_LIBS=OFF", ".."], cwd=tgt)
     run(cmd, cwd=tgt)
     return tgt
 
@@ -203,13 +192,14 @@ def main(opts):
     if os.path.exists(tmp):
         shutil.rmtree(tmp)
     os.mkdir(tmp)
-    configured = configure_dummy_project(tmp, get_cmake_package_locations(opts.build_tree))
+    llvm_build_tree = next(pathlib.Path(opts.build_tree).glob("llvm-*"))
+    swift_build_tree = next(pathlib.Path(opts.build_tree).glob("swift-*"))
+    earlyswiftsyntax_build_tree = next(pathlib.Path(opts.build_tree).glob("earlyswiftsyntax-*"))
+    configured = configure_dummy_project(tmp, llvm_build_tree, swift_build_tree, earlyswiftsyntax_build_tree)
     libs = get_libs(configured)
 
     exported = tmp / "exported"
     exported.mkdir()
-    llvm_build_tree = next(pathlib.Path(opts.build_tree).glob("llvm-*"))
-    swift_build_tree = next(pathlib.Path(opts.build_tree).glob("swift-*"))
     export_libs(exported, libs, swift_build_tree)
     export_headers(exported, opts.swift_source_tree, llvm_build_tree, swift_build_tree)
     export_sdk(exported / "sdk", opts.swift_source_tree, swift_build_tree)
