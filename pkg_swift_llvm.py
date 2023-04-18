@@ -44,7 +44,7 @@ def resolve(p):
 
 
 def run(prog, *, cwd, env=None, input=None):
-    print("running", " ".join(prog), f"(cwd={cwd})")
+    print("running", *prog, f"(cwd={cwd})")
     if env is not None:
         runenv = dict(os.environ)
         runenv.update(env)
@@ -66,7 +66,6 @@ def configure_dummy_project(tmp, llvm, swift, swift_syntax):
     tgt = tmp / "build"
     tgt.mkdir()
     run(["cmake", f"-DCMAKE_PREFIX_PATH={llvm};{swift};{swift_syntax}/cmake/modules", "-DBUILD_SHARED_LIBS=OFF", ".."], cwd=tgt)
-    run(cmd, cwd=tgt)
     return tgt
 
 
