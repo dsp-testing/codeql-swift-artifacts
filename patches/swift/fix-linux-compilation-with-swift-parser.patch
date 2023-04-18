@@ -1,27 +1,36 @@
 diff --git a/cmake/modules/AddSwift.cmake b/cmake/modules/AddSwift.cmake
-index 58c7eb1bd4f..da56fbb1c20 100644
+index 58c7eb1bd4f..4f4d5b7edea 100644
 --- a/cmake/modules/AddSwift.cmake
 +++ b/cmake/modules/AddSwift.cmake
-@@ -918,11 +918,17 @@ function(add_swift_host_tool executable)
-         set(extra_relative_rpath "../")
+@@ -912,17 +912,22 @@ function(add_swift_host_tool executable)
+   endif()
+ 
+   if(SWIFT_SWIFT_PARSER)
+-    set(extra_relative_rpath "")
+-    if(NOT ${ASHT_BOOTSTRAPPING} STREQUAL "")
+-      if (${executable} MATCHES "-bootstrapping")
+-        set(extra_relative_rpath "../")
++    if (SWIFT_HOST_VARIANT_SDK STREQUAL LINUX)
++      if(NOT ${ASHT_BOOTSTRAPPING} STREQUAL "" AND ${executable} MATCHES "-bootstrapping")
++        set_property(TARGET ${executable} APPEND PROPERTY INSTALL_RPATH "$ORIGIN/../../lib/swift/host")
++      else()
++        set_property(TARGET ${executable} APPEND PROPERTY INSTALL_RPATH "$ORIGIN/../lib/swift/host")
++      endif()
++    else()
++      set(extra_relative_rpath "")
++      if(NOT ${ASHT_BOOTSTRAPPING} STREQUAL "" AND ${executable} MATCHES "-bootstrapping")
++          set(extra_relative_rpath "../")
        endif()
++      set_property(
++        TARGET ${executable}
++        APPEND PROPERTY INSTALL_RPATH
++	  "@executable_path/../${extra_relative_rpath}lib/swift/host")
      endif()
 -
 -    set_property(
 -      TARGET ${executable}
 -      APPEND PROPERTY INSTALL_RPATH
 -        "@executable_path/../${extra_relative_rpath}lib/swift/host")
-+    if (SWIFT_HOST_VARIANT_SDK STREQUAL LINUX)
-+      set_property(
-+        TARGET ${executable}
-+        APPEND PROPERTY INSTALL_RPATH
-+	  "$ORIGIN/../${extra_relative_rpath}lib/swift/host")
-+    else()
-+      set_property(
-+        TARGET ${executable}
-+        APPEND PROPERTY INSTALL_RPATH
-+	  "@executable_path/../${extra_relative_rpath}lib/swift/host")
-+    endif()
    endif()
  
    if(ASHT_THINLTO_LD64_ADD_FLTO_CODEGEN_ONLY)
