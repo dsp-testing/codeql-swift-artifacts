@@ -1,6 +1,4 @@
 [preset: codeql-baseline]
-bootstrapping=hosttools
-
 llvm-cmake-options=-DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD=X86;ARM;AArch64
 
 skip-ios
@@ -28,13 +26,25 @@ skip-build-android
 enable-experimental-string-processing
 swift-enable-experimental-string-processing=1
 
-[preset: codeql]
+no-assertions
+
+reconfigure
+
+[preset: codeql-release]
 mixin-preset=codeql-baseline
 release
 build-subdir=codeql
+
+[preset: codeql-Linux]
+mixin-preset=codeql-release
+bootstrapping=hosttools
+
+[preset: codeql-macOS]
+mixin-preset=codeql-release
+bootstrapping=bootstrapping
 
 [preset: codeql-debug]
 mixin-preset=codeql-baseline
 debug
 build-subdir=codeql-debug
-
+bootstrapping=bootstrapping
