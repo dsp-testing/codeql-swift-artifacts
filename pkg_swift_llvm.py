@@ -146,6 +146,8 @@ def export_stdlibs(exported_dir, swift_build_tree):
         f'libswiftCore.{ext}',
         'libswiftCompatibility50.a',
         'libswiftCompatibility51.a',
+        'libswiftCompatibility56.a',
+        'libswiftCompatibilityBytecodeLayouts.a',
         'libswiftCompatibilityConcurrency.a',
         'libswiftCompatibilityDynamicReplacements.a']
     for stdlib in stdlibs:
