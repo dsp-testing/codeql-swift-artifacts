@@ -141,7 +141,7 @@ def export_stdlibs(exported_dir, swift_build_tree):
     lib_dir = swift_build_tree / 'lib/swift' / platform
     patterns = [f'libswift{dep}.*' for dep in (
         "Core",
-        "_RegexParser",
+        "_*",
         "Glibc",
         "Compatibility*",
     )]
