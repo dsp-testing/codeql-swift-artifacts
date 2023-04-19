@@ -143,20 +143,13 @@ def export_stdlibs(exported_dir, swift_build_tree):
         ext = 'so'
     lib_dir = swift_build_tree / 'lib/swift' / platform
     stdlibs = [
-        f'libswiftCore.{ext}',
-        'libswiftCompatibility50.a',
-        'libswiftCompatibility51.a',
-        'libswiftCompatibility56.a',
-        'libswiftCompatibilityBytecodeLayouts.a',
-        'libswiftCompatibilityConcurrency.a',
-        'libswiftCompatibilityDynamicReplacements.a']
+        lib_dir / f'libswiftCore.{ext}',
+        lib_dir / f'libswift_RegexParser.{ext}',
+    ]
+    stdlibs.extend(lib_dir.glob('libswiftCompatibility*.a'))
     for stdlib in stdlibs:
-        lib_path = lib_dir / stdlib
-        if lib_path.exists():
-            print(f'Copying {stdlib}')
-            shutil.copy(lib_path, exported_dir)
-        else:
-            print(f'Skipping {stdlib}')
+        print(f'Copying {stdlib}')
+        shutil.copy(stdlib, exported_dir)
 
 
 def export_libs(exported_dir, libs, swift_build_tree):
