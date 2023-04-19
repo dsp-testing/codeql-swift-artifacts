@@ -137,19 +137,18 @@ def export_sdk(tgt, swift_source_tree, swift_build_tree):
 
 def export_stdlibs(exported_dir, swift_build_tree):
     ext = 'dylib'
-    platform = 'macosx'
-    if get_platform() == "linux":
-        platform = 'linux'
-        ext = 'so'
+    platform = 'linux' if get_platform() == 'linux' else 'macosx'
     lib_dir = swift_build_tree / 'lib/swift' / platform
-    stdlibs = [
-        lib_dir / f'libswiftCore.{ext}',
-        lib_dir / f'libswift_RegexParser.{ext}',
-    ]
-    stdlibs.extend(lib_dir.glob('libswiftCompatibility*.a'))
-    for stdlib in stdlibs:
-        print(f'Copying {stdlib}')
-        shutil.copy(stdlib, exported_dir)
+    patterns = [f'libswift{dep}.*' for dep in (
+        "Core",
+        "_RegexParser",
+        "Glibc",
+        "Compatibility*",
+    )]
+    for pattern in patterns:
+        for stdlib in lib_dir.glob(pattern):
+            print(f'Copying {stdlib}')
+            shutil.copy(stdlib, exported_dir)
 
 
 def export_libs(exported_dir, libs, swift_build_tree):
