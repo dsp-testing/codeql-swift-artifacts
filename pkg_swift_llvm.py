@@ -139,11 +139,12 @@ def export_stdlibs(exported_dir, swift_build_tree):
     ext = 'dylib'
     platform = 'linux' if get_platform() == 'linux' else 'macosx'
     lib_dir = swift_build_tree / 'lib/swift' / platform
-    patterns = [f'libswift{dep}.*' for dep in (
-        "Core",
-        "_*",
-        "Glibc",
-        "Compatibility*",
+    patterns = [f'lib{dep}.*' for dep in (
+        "dispatch",
+        "swiftCore",
+        "swift_*",
+        "swiftGlibc",
+        "swiftCompatibility*",
     )]
     for pattern in patterns:
         for stdlib in lib_dir.glob(pattern):
