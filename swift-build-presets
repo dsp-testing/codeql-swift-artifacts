@@ -1,10 +1,6 @@
 [preset: codeql-baseline]
 llvm-cmake-options=-DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD=X86;ARM;AArch64
 
-skip-ios
-skip-tvos
-skip-watchos
-
 skip-test-osx
 skip-test-linux
 skip-test-swiftpm
@@ -41,6 +37,9 @@ bootstrapping=hosttools
 
 [preset: codeql-macOS]
 mixin-preset=codeql-release
+ios
+tvos
+watchos
 bootstrapping=bootstrapping
 
 [preset: codeql-debug]
