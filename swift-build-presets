@@ -23,8 +23,10 @@ enable-experimental-string-processing
 swift-enable-experimental-string-processing=1
 
 no-assertions
-
 reconfigure
+
+install-swift
+install-prefix=/codeql-toolchain
 
 [preset: codeql-release]
 mixin-preset=codeql-baseline
