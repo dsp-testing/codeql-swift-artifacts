@@ -135,26 +135,27 @@ def export_sdk(tgt, swift_source_tree, swift_build_tree):
                     ignore=shutil.ignore_patterns('CMakeLists.txt'))
 
 
+def export_toolchain(tgt, toolchain_dir):
+    print("assembling toolchain")
+    shutil.copytree(toolchain_dir, tgt)
+
+
 def export_stdlibs(exported_dir, swift_build_tree):
     ext = 'dylib'
-    platform = 'macosx'
-    if get_platform() == "linux":
-        platform = 'linux'
-        ext = 'so'
+    platform = 'linux' if get_platform() == 'linux' else 'macosx'
     lib_dir = swift_build_tree / 'lib/swift' / platform
-    stdlibs = [
-        f'libswiftCore.{ext}',
-        'libswiftCompatibility50.a',
-        'libswiftCompatibility51.a',
-        'libswiftCompatibilityConcurrency.a',
-        'libswiftCompatibilityDynamicReplacements.a']
-    for stdlib in stdlibs:
-        lib_path = lib_dir / stdlib
-        if lib_path.exists():
+    patterns = [f'lib{dep}.*' for dep in (
+        "dispatch",
+        "BlocksRuntime",
+        "swiftCore",
+        "swift_*",
+        "swiftGlibc",
+        "swiftCompatibility*",
+    )]
+    for pattern in patterns:
+        for stdlib in lib_dir.glob(pattern):
             print(f'Copying {stdlib}')
-            shutil.copy(lib_path, exported_dir)
-        else:
-            print(f'Skipping {stdlib}')
+            shutil.copy(stdlib, exported_dir)
 
 
 def export_libs(exported_dir, libs, swift_build_tree):
@@ -193,6 +194,7 @@ def main(opts):
     os.mkdir(tmp)
     llvm_build_tree = next(opts.build_tree.glob("llvm-*"))
     swift_build_tree = next(opts.build_tree.glob("swift-*"))
+    toolchain_dir = next(opts.build_tree.glob("toolchain-*/codeql-toolchain"))
     earlyswiftsyntax_build_tree = next(opts.build_tree.glob("earlyswiftsyntax-*"))
     configured = configure_dummy_project(tmp, prefixes=[llvm_build_tree, swift_build_tree,
                                                         earlyswiftsyntax_build_tree / "cmake" / "modules"])
@@ -203,6 +205,7 @@ def main(opts):
     export_libs(exported, libs, swift_build_tree)
     export_headers(exported, opts.swift_source_tree, llvm_build_tree, swift_build_tree)
     export_sdk(exported / "sdk", opts.swift_source_tree, swift_build_tree)
+    export_toolchain(exported / "toolchain", toolchain_dir)
 
     zip_dir(exported, opts.output)
 

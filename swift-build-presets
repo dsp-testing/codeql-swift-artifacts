@@ -1,10 +1,6 @@
 [preset: codeql-baseline]
 llvm-cmake-options=-DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD=X86;ARM;AArch64
 
-skip-ios
-skip-tvos
-skip-watchos
-
 skip-test-osx
 skip-test-linux
 skip-test-swiftpm
@@ -27,8 +23,10 @@ enable-experimental-string-processing
 swift-enable-experimental-string-processing=1
 
 no-assertions
-
 reconfigure
+
+install-swift
+install-prefix=/codeql-toolchain
 
 [preset: codeql-release]
 mixin-preset=codeql-baseline
@@ -41,6 +39,9 @@ bootstrapping=hosttools
 
 [preset: codeql-macOS]
 mixin-preset=codeql-release
+ios
+tvos
+watchos
 bootstrapping=bootstrapping
 
 [preset: codeql-debug]
