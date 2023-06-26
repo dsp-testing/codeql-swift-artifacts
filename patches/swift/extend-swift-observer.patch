@@ -1,0 +1,61 @@
+diff --git a/include/swift/Frontend/FrontendOptions.h b/include/swift/Frontend/FrontendOptions.h
+index c47fdaae886..aa9c265d6d3 100644
+--- a/include/swift/Frontend/FrontendOptions.h
++++ b/include/swift/Frontend/FrontendOptions.h
+@@ -212,6 +212,9 @@ public:
+   /// The path to which we should output statistics files.
+   std::string StatsOutputDir;
+ 
++  /// CodeQL: Prevent ASTContext from being freed during at the frontend
++  bool KeepASTContext = false;
++
+   /// Trace changes to stats to files in StatsOutputDir.
+   bool TraceStats = false;
+ 
+diff --git a/include/swift/FrontendTool/FrontendTool.h b/include/swift/FrontendTool/FrontendTool.h
+index 184e6196918..8bc237725b5 100644
+--- a/include/swift/FrontendTool/FrontendTool.h
++++ b/include/swift/FrontendTool/FrontendTool.h
+@@ -46,6 +46,9 @@ public:
+   /// The frontend has performed semantic analysis.
+   virtual void performedSemanticAnalysis(CompilerInstance &instance);
+ 
++  /// CodeQL: The frontend has performed compilation.
++  virtual void performedCompilation(CompilerInstance &instance);
++
+   /// The frontend has performed basic SIL generation.
+   /// SIL diagnostic passes have not yet been applied.
+   virtual void performedSILGeneration(SILModule &module);
+diff --git a/lib/FrontendTool/FrontendTool.cpp b/lib/FrontendTool/FrontendTool.cpp
+index 47b8883f7e2..4080c02d6b0 100644
+--- a/lib/FrontendTool/FrontendTool.cpp
++++ b/lib/FrontendTool/FrontendTool.cpp
+@@ -1572,6 +1572,11 @@ static bool validateTBDIfNeeded(const CompilerInvocation &Invocation,
+ }
+ 
+ static void freeASTContextIfPossible(CompilerInstance &Instance) {
++  // CodeQL: keep ASTContext until we are done with the extraction
++  if (Instance.getInvocation().getFrontendOptions().KeepASTContext) {
++    return;
++  }
++
+   // If the stats reporter is installed, we need the ASTContext to live through
+   // the entire compilation process.
+   if (Instance.getASTContext().Stats) {
+@@ -2321,6 +2326,10 @@ int swift::performFrontend(ArrayRef<const char *> Args,
+ 
+   int ReturnValue = 0;
+   bool HadError = performCompile(*Instance, ReturnValue, observer);
++  // Compilation happened
++  if (observer) {
++    observer->performedCompilation(*Instance);
++  }
+ 
+   if (verifierEnabled) {
+     DiagnosticEngine &diags = Instance->getDiags();
+@@ -2348,3 +2357,5 @@ void FrontendObserver::configuredCompiler(CompilerInstance &instance) {}
+ void FrontendObserver::performedSemanticAnalysis(CompilerInstance &instance) {}
+ void FrontendObserver::performedSILGeneration(SILModule &module) {}
+ void FrontendObserver::performedSILProcessing(SILModule &module) {}
++// CodeQL: Add another hook right after compilation so that we can run the extraction
++void FrontendObserver::performedCompilation(CompilerInstance &instance) {}
