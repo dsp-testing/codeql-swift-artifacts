@@ -42,6 +42,7 @@ mixin-preset=codeql-release
 ios
 tvos
 watchos
+maccatalyst
 bootstrapping=bootstrapping
 
 [preset: codeql-debug]
