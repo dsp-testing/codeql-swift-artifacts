@@ -13,6 +13,13 @@ message("Using Swift_CONFIG: ${Clang_CONFIG}")
 add_executable(codeql-swift-artifacts empty.cpp)
 target_link_libraries(codeql-swift-artifacts PRIVATE LLVMSupport swiftFrontendTool swiftCompilerModules)
 
+set (CODEQL_SWIFT_VERSION_MAJOR ${SWIFT_VERSION_MAJOR})
+set (CODEQL_SWIFT_VERSION_MINOR ${SWIFT_VERSION_MINOR})
+set (CODEQL_SWIFT_VERSION_PATCH ${SWIFT_VERSION_PATCH})
+
+configure_file(${CMAKE_SOURCE_DIR}/CodeQLSwiftVersion.h.in
+               ${SWIFT_BINARY_DIR}/include/swift/CodeQLSwiftVersion.h)
+
 if(APPLE)
   execute_process(
     COMMAND xcrun -find swiftc

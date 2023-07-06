@@ -61,6 +61,7 @@ def configure_dummy_project(tmp, prefixes):
     print(script_dir)
     shutil.copy(script_dir / "CMakeLists.txt", tmp / "CMakeLists.txt")
     shutil.copy(script_dir / "empty.cpp", tmp / "empty.cpp")
+    shutil.copy(script_dir / "CodeQLSwiftVersion.h.in", tmp / "CodeQLSwiftVersion.h.in")
     tgt = tmp / "build"
     tgt.mkdir()
     prefixes = ';'.join(str(p) for p in prefixes)
