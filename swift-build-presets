@@ -36,6 +36,10 @@ build-subdir=codeql
 [preset: codeql-Linux]
 mixin-preset=codeql-release
 bootstrapping=hosttools
+foundation
+libdispatch
+install-foundation
+install-libdispatch
 
 [preset: codeql-macOS]
 mixin-preset=codeql-release
