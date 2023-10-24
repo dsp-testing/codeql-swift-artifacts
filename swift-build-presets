@@ -38,8 +38,10 @@ mixin-preset=codeql-release
 bootstrapping=hosttools
 foundation
 libdispatch
+swiftpm
 install-foundation
 install-libdispatch
+install-swiftpm
 
 [preset: codeql-macOS]
 mixin-preset=codeql-release
