@@ -42,6 +42,9 @@ swiftpm
 install-foundation
 install-libdispatch
 install-swiftpm
+llvm-install-components=clang;clang-resource-headers;compiler-rt
+install-llvm
+xctest
 
 [preset: codeql-macOS]
 mixin-preset=codeql-release
