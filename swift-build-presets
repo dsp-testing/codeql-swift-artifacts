@@ -33,18 +33,127 @@ mixin-preset=codeql-baseline
 release
 build-subdir=codeql
 
-[preset: codeql-Linux]
-mixin-preset=codeql-release
-bootstrapping=hosttools
+#===------------------------------------------------------------------------===#
+# Linux Builders
+#===------------------------------------------------------------------------===#
+[preset: mixin_linux_install_components_with_clang]
+
+swift-install-components=autolink-driver;compiler;stdlib
+llvm-install-components=clang;clang-resource-headers;compiler-rt;clang-features-file
+
+[preset: mixin_linux_installation]
+mixin-preset=
+    mixin_linux_install_components_with_clang
+
+llbuild
+swiftpm
+swift-driver
+xctest
+libicu
+# swiftdocc
+
+# build-ninja
+install-llvm
+install-swift
+# install-lldb
+# install-llbuild
+install-swiftpm
+install-swift-driver
+install-swiftsyntax
+install-xctest
+install-libicu
+install-prefix=/usr
+install-sourcekit-lsp
+# install-swiftformat
+# install-swiftdocc
+# build-swift-static-stdlib
+# build-swift-static-sdk-overlay
+# build-swift-stdlib-unittest-extra
+
+# Executes the lit tests for the installable package that is created
+# Assumes the swift-integration-tests repo is checked out
+
+# test-installable-package
+
+# Build the benchmarks against the toolchain.
+# toolchain-benchmarks
+
+# This ensures the default module cache
+# location is local to this run, allowing
+# to schedule multiple builds safely
+# in Linux CI bots
+# relocate-xdg-cache-home-under-build-subdir
+
+
+[preset: buildbot_linux_base]
+mixin-preset=
+    mixin_linux_installation
+build-subdir=buildbot_linux
+lldb
+release
+# test
+# validation-test
+# long-test
+# stress-test
+# test-optimized
 foundation
 libdispatch
-swiftpm
+indexstore-db
+sourcekit-lsp
+swiftdocc
+# lit-args=-v --time-tests
+
+# rdar://problem/31454823
+# lldb-test-swift-only
+
 install-foundation
 install-libdispatch
-install-swiftpm
-llvm-install-components=clang;clang-resource-headers;compiler-rt
-install-llvm
-xctest
+reconfigure
+
+[preset: buildbot_linux]
+mixin-preset=
+    mixin_lightweight_assertions,no-stdlib-asserts
+    buildbot_linux_base
+
+[preset: buildbot_linux,no_assertions]
+mixin-preset=buildbot_linux_base
+
+no-assertions
+
+
+[preset: mixin_buildbot_linux,no_test]
+skip-test-cmark
+skip-test-lldb
+skip-test-swift
+skip-test-llbuild
+skip-test-swiftpm
+skip-test-swift-driver
+skip-test-xctest
+skip-test-foundation
+skip-test-libdispatch
+skip-test-playgroundsupport
+skip-test-libicu
+skip-test-indexstore-db
+skip-test-sourcekit-lsp
+skip-test-swiftdocc
+
+# Linux package with out test
+[preset: buildbot_linux,no_test]
+mixin-preset=
+    buildbot_linux
+    mixin_buildbot_linux,no_test
+
+
+[preset: buildbot_linux,no_assertions,no_test]
+mixin-preset=
+    buildbot_linux,no_assertions
+    mixin_buildbot_linux,no_test
+
+[preset: codeql-Linux]
+mixin-preset=
+    buildbot_linux,no_assertions,no_test
+    codeql-release
+bootstrapping=bootstrapping
 
 [preset: codeql-macOS]
 mixin-preset=codeql-release
