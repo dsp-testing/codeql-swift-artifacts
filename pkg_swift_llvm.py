@@ -136,11 +136,6 @@ def export_sdk(tgt, swift_source_tree, swift_build_tree):
                     ignore=shutil.ignore_patterns('CMakeLists.txt'))
 
 
-def export_toolchain(tgt, toolchain_dir):
-    print("assembling toolchain")
-    shutil.copytree(toolchain_dir, tgt)
-
-
 def export_stdlibs(exported_dir, swift_build_tree):
     ext = 'dylib'
     platform = 'linux' if get_platform() == 'linux' else 'macosx'
@@ -195,7 +190,6 @@ def main(opts):
     os.mkdir(tmp)
     llvm_build_tree = next(opts.build_tree.glob("llvm-*"))
     swift_build_tree = next(opts.build_tree.glob("swift-*"))
-    toolchain_dir = next(opts.build_tree.glob("toolchain-*/codeql-toolchain"))
     earlyswiftsyntax_build_tree = next(opts.build_tree.glob("earlyswiftsyntax-*"))
     configured = configure_dummy_project(tmp, prefixes=[llvm_build_tree, swift_build_tree,
                                                         earlyswiftsyntax_build_tree / "cmake" / "modules"])
@@ -206,7 +200,6 @@ def main(opts):
     export_libs(exported, libs, swift_build_tree)
     export_headers(exported, opts.swift_source_tree, llvm_build_tree, swift_build_tree)
     export_sdk(exported / "sdk", opts.swift_source_tree, swift_build_tree)
-    export_toolchain(exported / "toolchain", toolchain_dir)
 
     zip_dir(exported, opts.output)
 
