@@ -119,23 +119,6 @@ def copy_includes(src, tgt):
                 tgtfile.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(srcfile, tgtfile)
 
-
-def export_sdk(tgt, swift_source_tree, swift_build_tree):
-    print("assembling sdk")
-    srcdir = swift_build_tree / "lib" / "swift"
-    tgtdir = tgt / "usr" / "lib" / "swift"
-    if get_platform() == "linux":
-        srcdir /= "linux"
-        tgtdir /= "linux/x86_64"
-    else:
-        srcdir /= "macosx"
-    for mod in srcdir.glob("*.swiftmodule"):
-        shutil.copytree(mod, tgtdir / mod.name)
-    shutil.copytree(swift_source_tree / "stdlib" / "public" / "SwiftShims" / "swift" / "shims",
-                    tgt / "usr" / "lib" / "swift" / "shims",
-                    ignore=shutil.ignore_patterns('CMakeLists.txt'))
-
-
 def export_stdlibs(exported_dir, swift_build_tree):
     ext = 'dylib'
     platform = 'linux' if get_platform() == 'linux' else 'macosx'
@@ -199,7 +182,6 @@ def main(opts):
     exported.mkdir()
     export_libs(exported, libs, swift_build_tree)
     export_headers(exported, opts.swift_source_tree, llvm_build_tree, swift_build_tree)
-    export_sdk(exported / "sdk", opts.swift_source_tree, swift_build_tree)
 
     zip_dir(exported, opts.output)
 
