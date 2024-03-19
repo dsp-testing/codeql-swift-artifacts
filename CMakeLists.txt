@@ -6,6 +6,9 @@ find_package(Clang REQUIRED CONFIG)
 find_package(Swift REQUIRED CONFIG)
 find_package(SwiftSyntax REQUIRED CONFIG)
 
+set(THREADS_PREFER_PTHREAD_FLAG YES)
+include(FindThreads)
+
 message("Using LLVM_CONFIG: ${Swift_CONFIG}")
 message("Using Clang_CONFIG: ${LLVM_CONFIG}")
 message("Using Swift_CONFIG: ${Clang_CONFIG}")
@@ -17,6 +20,7 @@ set (CODEQL_SWIFT_VERSION_MAJOR ${SWIFT_VERSION_MAJOR})
 set (CODEQL_SWIFT_VERSION_MINOR ${SWIFT_VERSION_MINOR})
 set (CODEQL_SWIFT_VERSION_PATCH ${SWIFT_VERSION_PATCH})
 
+# TODO: these are now upstreamed
 configure_file(${CMAKE_SOURCE_DIR}/CodeQLSwiftVersion.h.in
                ${SWIFT_BINARY_DIR}/include/swift/CodeQLSwiftVersion.h)
 
