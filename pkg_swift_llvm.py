@@ -173,9 +173,8 @@ def main(opts):
     os.mkdir(tmp)
     llvm_build_tree = next(opts.build_tree.glob("llvm-*"))
     swift_build_tree = next(opts.build_tree.glob("swift-*"))
-    earlyswiftsyntax_build_tree = next(opts.build_tree.glob("earlyswiftsyntax-*"))
     configured = configure_dummy_project(tmp, prefixes=[llvm_build_tree, swift_build_tree,
-                                                        earlyswiftsyntax_build_tree / "cmake" / "modules"])
+                                                        swift_build_tree / 'cmake' / 'modules'])
     libs = get_libs(configured)
 
     exported = tmp / "exported"
