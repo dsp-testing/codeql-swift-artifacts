@@ -80,7 +80,7 @@ def get_libs(configured):
             ret.static.append((configured / l).absolute())
         elif l.endswith(".so") or l.endswith(".tbd") or l.endswith(".dylib"):
             ret.shared.append((configured / l).absolute())
-        elif l.startswith(("-L", "-Wl", "-l")):
+        elif l.startswith(("-L", "-Wl", "-l")) or l == "-pthread":
             ret.linker_flags.append(l)
         else:
             raise ValueError(f"cannot understand link.txt: " + l)
