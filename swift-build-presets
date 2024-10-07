@@ -38,7 +38,7 @@ bootstrapping=hosttools
 
 [preset: codeql-macOS]
 mixin-preset=codeql-release
-bootstrapping=bootstrapping
+bootstrapping=hosttools
 
 [preset: codeql-debug]
 mixin-preset=codeql-baseline
