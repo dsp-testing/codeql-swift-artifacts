@@ -14,6 +14,10 @@ skip-test-swiftformat
 skip-test-toolchain-benchmarks
 skip-test-swift-inspect
 skip-test-swift
+skip-build-xros
+skip-test-xros
+skip-test-xros-host
+skip-test-xros-simulator
 
 skip-build-clang-tools-extra
 skip-build-benchmarks
@@ -25,7 +29,13 @@ no-assertions
 reconfigure
 
 install-swift
+install-swiftsyntax
+install-swift-testing
+install-swift-testing-macros
 install-prefix=/codeql-toolchain
+
+swift-testing
+swift-testing-macros
 
 [preset: codeql-release]
 mixin-preset=codeql-baseline
@@ -38,7 +48,7 @@ bootstrapping=hosttools
 
 [preset: codeql-macOS]
 mixin-preset=codeql-release
-bootstrapping=hosttools
+bootstrapping=bootstrapping
 
 [preset: codeql-debug]
 mixin-preset=codeql-baseline
